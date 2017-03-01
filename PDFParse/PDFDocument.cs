@@ -36,43 +36,6 @@ namespace PDFParse
             }
         }
 
-        protected PDFStream ApplyDCTDecodeFilter(PDFStream data, PDFDictionary filterParams, PDFDictionary streamParams)
-        {
-            return new PDFImage(data, filterParams, streamParams);
-        }
-
-        protected PDFStream ApplyFlateDecodeFilter(PDFStream data, PDFDictionary filterParams, PDFDictionary streamParams)
-        {
-            using (ZlibStream strm = new ZlibStream(new MemoryStream(data.Data), CompressionMode.Decompress))
-            {
-                byte[] outdata = new byte[1048576];
-                int pos = 0;
-                int len = 0;
-
-                do
-                {
-                    Array.Resize(ref outdata, pos + 1048576);
-                    len = strm.Read(outdata, pos, outdata.Length - pos);
-                    pos += len;
-                }
-                while (len > 0);
-
-                Array.Resize(ref outdata, pos);
-
-                return new PDFStream { Data = outdata };
-            }
-        }
-
-        protected PDFStream ApplyFilter(PDFStream data, string filter, PDFDictionary filterParams, PDFDictionary streamParams)
-        {
-            switch (filter)
-            {
-                case "FlateDecode": return ApplyFlateDecodeFilter(data, filterParams, streamParams);
-                case "DCTDecode": return ApplyDCTDecodeFilter(data, filterParams, streamParams);
-                default: throw new NotImplementedException();
-            }
-        }
-
         protected void ApplyFilters(PDFObject obj)
         {
             PDFDictionary streamParams;
@@ -120,7 +83,7 @@ namespace PDFParse
                             string filtername = filters.Get<PDFName>(i).Name;
                             PDFDictionary filterparams;
                             decodeparamslist.TryGet<PDFDictionary>(i, out filterparams);
-                            data = ApplyFilter(data, filtername, filterparams, streamParams);
+                            data = data.ApplyFilter(filtername, filterparams, streamParams);
                         }
                     }
 
