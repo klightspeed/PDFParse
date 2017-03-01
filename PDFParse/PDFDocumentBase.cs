@@ -12,51 +12,114 @@ namespace PDFParse
         public PDFTrailer Trailer;
         public PDFVersion Version;
         public SortedDictionary<PDFObjRef, PDFObject> Objects = new SortedDictionary<PDFObjRef, PDFObject>();
+        public Dictionary<string, List<PDFObject>> ObjectByType = new Dictionary<string, List<PDFObject>>();
+
+        protected PDFObject GetOrCreate(PDFObjRef objref)
+        {
+            if (!Objects.ContainsKey(objref))
+            {
+                Objects[objref] = new PDFObject(objref.ID, objref.Version);
+            }
+
+            return Objects[objref];
+        }
+
+        protected PDFList ResolveReferences(PDFObject parent, PDFList list)
+        {
+            return new PDFList(list.Select(v => ResolveReferences(parent, v)));
+        }
+
+        protected PDFDictionary ResolveReferences(PDFObject parent, PDFDictionary dict)
+        {
+            return new PDFDictionary(dict.Select(kvp => new KeyValuePair<string, IPDFElement>(kvp.Key, ResolveReferences(parent, kvp.Value))));
+        }
+
+        protected PDFObject ResolveReferences(PDFObject parent, PDFObjRef objref)
+        {
+            return GetOrCreate(objref).AddRef(parent);
+        }
+
+        protected IPDFElement ResolveReferences(PDFObject parent, IPDFElement val)
+        {
+            if (val is PDFList)
+            {
+                return ResolveReferences(parent, (PDFList)val);
+            }
+            else if (val is PDFDictionary)
+            {
+                return ResolveReferences(parent, (PDFDictionary)val);
+            }
+            else if (val is PDFObjRef)
+            {
+                return ResolveReferences(parent, (PDFObjRef)val);
+            }
+            else
+            {
+                return val;
+            }
+        }
+
+        protected void ResolveReferences(PDFObject obj)
+        {
+            if (obj.Value != null)
+            {
+                obj.Value = ResolveReferences(obj, obj.Value);
+            }
+        }
+
+        protected void AddToObjectTypes(PDFObject obj)
+        {
+            PDFDictionary dict;
+            if (obj.TryGet(out dict))
+            {
+                PDFName type;
+                if (dict.TryGet("Type", out type))
+                {
+                    if (!ObjectByType.ContainsKey(type.Name))
+                    {
+                        ObjectByType[type.Name] = new List<PDFObject>();
+                    }
+                    ObjectByType[type.Name].Add(obj);
+                }
+            }
+        }
+
 
         public void Load(IEnumerable<IPDFToken> tokens)
         {
-            Stack<IPDFToken> stack = new Stack<IPDFToken>();
+            PDFTokenStack stack = new PDFTokenStack();
 
             foreach (IPDFToken token in tokens)
             {
-                switch (token.TokenType)
+                stack.ProcessToken(token);
+            }
+
+            foreach (IPDFToken token in stack)
+            {
+                if (token is PDFVersion && Version == null)
                 {
-                    case PDFTokenType.Comment:
-                        break;
-                    case PDFTokenType.Version:
-                        if (stack.Count == 0 && this.Version == null)
-                        {
-                            this.Version = token as PDFVersion;
-                        }
-                        break;
-                    case PDFTokenType.EndDictionary:
-                        stack.Push(PDFDictionary.Parse(stack));
-                        break;
-                    case PDFTokenType.EndList:
-                        stack.Push(PDFList.Parse(stack));
-                        break;
-                    case PDFTokenType.EndObject:
-                        PDFObject obj = PDFObject.Parse(stack);
-                        Objects[obj.ToObjRef()] = obj;
-                        stack.Push(obj);
-                        break;
-                    case PDFTokenType.ObjectRef:
-                        stack.Push(PDFObjRef.Parse(stack));
-                        break;
-                    case PDFTokenType.XrefEntryFree:
-                    case PDFTokenType.XrefEntryInUse:
-                        stack.Push(PDFXrefEntry.Parse(stack, token.TokenType));
-                        break;
-                    case PDFTokenType.Trailer:
-                        stack.Push(PDFXref.Parse(stack));
-                        break;
-                    case PDFTokenType.EOF:
-                        this.Trailer = PDFTrailer.Parse(stack);
-                        break;
-                    default:
-                        stack.Push(token);
-                        break;
+                    Version = (PDFVersion)token;
                 }
+                else if (token is PDFTrailer)
+                {
+                    Trailer = (PDFTrailer)token;
+                }
+                else if (token is PDFObject)
+                {
+                    PDFObject obj = (PDFObject)token;
+                    Objects[obj.ToObjRef()] = obj;
+                }
+            }
+
+            foreach (PDFObject obj in Objects.Values.ToArray())
+            {
+                ResolveReferences(obj);
+                AddToObjectTypes(obj);
+            }
+
+            if (Trailer.TrailerDictionary != null)
+            {
+                Trailer.TrailerDictionary = ResolveReferences(null, Trailer.TrailerDictionary);
             }
         }
 

@@ -83,6 +83,19 @@ namespace PDFParse.Primitives
             Children = new List<PDFObject>();
         }
 
+        public PDFObject(int id, int gen) : this()
+        {
+            this.ID = id;
+            this.Version = gen;
+        }
+
+        public PDFObject AddRef(PDFObject parent)
+        {
+            this.RefCount++;
+            this.ReferencedBy.Add(parent);
+            return this;
+        }
+
         public PDFObjRef ToObjRef()
         {
             return new PDFObjRef { ID = this.ID, Version = this.Version };

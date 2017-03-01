@@ -65,6 +65,7 @@
     <Compile Include="Primitives\PDFDictionary.cs" />
     <Compile Include="Primitives\PDFDouble.cs" />
     <Compile Include="Primitives\PDFHexString.cs" />
+    <Compile Include="Primitives\PDFImage.cs" />
     <Compile Include="Primitives\PDFInteger.cs" />
     <Compile Include="Primitives\PDFList.cs" />
     <Compile Include="Primitives\PDFName.cs" />
@@ -74,6 +75,7 @@
     <Compile Include="Primitives\PDFStream.cs" />
     <Compile Include="Primitives\PDFString.cs" />
     <Compile Include="Primitives\PDFToken.cs" />
+    <Compile Include="Primitives\PDFTokenStack.cs" />
     <Compile Include="Primitives\PDFTrailer.cs" />
     <Compile Include="Primitives\PDFVersion.cs" />
     <Compile Include="Primitives\PDFXref.cs" />
