@@ -6,7 +6,7 @@ using System.Text;
 
 namespace PDFParse
 {
-    public static class ObjectExtensions
+    public static class StackExtensions
     {
         public static T Pop<T>(this Stack<IPDFToken> tokens)
             where T : IPDFToken
