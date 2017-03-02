@@ -84,7 +84,6 @@ namespace PDFParse
             }
         }
 
-
         public void Load(IEnumerable<IPDFToken> tokens)
         {
             PDFTokenStack stack = new PDFTokenStack();
@@ -108,13 +107,26 @@ namespace PDFParse
                 {
                     PDFObject obj = (PDFObject)token;
                     Objects[obj.ToObjRef()] = obj;
+
+                    PDFName type;
+                    if (obj.TryGet("Type", out type) && type.Name == "ObjStm" && obj.Stream != null)
+                    {
+                        foreach (PDFObject sobj in PDFObject.FromObjStm(obj))
+                        {
+                            Objects[sobj.ToObjRef()] = sobj;
+                        }
+                    }
                 }
             }
 
             foreach (PDFObject obj in Objects.Values.ToArray())
             {
-                ResolveReferences(obj);
                 AddToObjectTypes(obj);
+            }
+
+            foreach (PDFObject obj in Objects.Values.ToArray())
+            {
+                ResolveReferences(obj);
             }
 
             if (Trailer.TrailerDictionary != null)

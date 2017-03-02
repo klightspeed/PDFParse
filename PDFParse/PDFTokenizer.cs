@@ -98,7 +98,7 @@ namespace PDFParse
 
         protected IPDFToken ReadStringLiteral()
         {
-            StringBuilder sb = new StringBuilder();
+            List<byte> bytes = new List<byte>();
             int parenlevel = 1;
 
             while (parenlevel >= 1)
@@ -120,7 +120,7 @@ namespace PDFParse
                             }
                         }
 
-                        sb.Append((char)octal);
+                        bytes.Add((byte)octal);
                     }
                     else if (c == '\r')
                     {
@@ -133,35 +133,60 @@ namespace PDFParse
                     {
                         switch ((char)c)
                         {
-                            case 'n': sb.Append('\n'); break;
-                            case 'r': sb.Append('\r'); break;
-                            case 't': sb.Append('\t'); break;
-                            case 'b': sb.Append('\b'); break;
-                            case 'f': sb.Append('\f'); break;
-                            default: sb.Append((char)c); break;
+                            case 'n': bytes.Add((byte)'\n'); break;
+                            case 'r': bytes.Add((byte)'\r'); break;
+                            case 't': bytes.Add((byte)'\t'); break;
+                            case 'b': bytes.Add((byte)'\b'); break;
+                            case 'f': bytes.Add((byte)'\f'); break;
+                            default: bytes.Add(c); break;
                         }
                     }
                 }
                 else if (c == '(')
                 {
                     parenlevel++;
-                    sb.Append('(');
+                    bytes.Add((byte)'(');
                 }
                 else if (c == ')')
                 {
                     parenlevel--;
                     if (parenlevel >= 1)
                     {
-                        sb.Append(')');
+                        bytes.Add((byte)')');
                     }
                 }
                 else
                 {
-                    sb.Append((char)c);
+                    bytes.Add(c);
                 }
             }
 
-            return new PDFString { Value = sb.ToString() };
+            if (bytes[0] == 0xFE && bytes[1] == 0xFF)
+            {
+                char[] chars = new char[bytes.Count / 2 - 1];
+
+                for (int i = 0; i < chars.Length; i++)
+                {
+                    chars[i] = (char)(((int)bytes[i * 2 + 2] << 8) | (int)bytes[i * 2 + 3]);
+                }
+
+                return new PDFString { Value = new String(chars) };
+            }
+            else if (bytes[0] == 0xFF && bytes[1] == 0xFE)
+            {
+                char[] chars = new char[bytes.Count / 2 - 1];
+
+                for (int i = 0; i < chars.Length; i++)
+                {
+                    chars[i] = (char)(((int)bytes[i * 2 + 2] << 8) | (int)bytes[i * 2 + 3]);
+                }
+
+                return new PDFString { Value = new String(chars) };
+            }
+            else
+            {
+                return new PDFString { Value = ISO88591.GetString(bytes.ToArray()) };
+            }
         }
 
         protected IPDFToken ReadHexString()

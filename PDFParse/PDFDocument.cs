@@ -36,66 +36,6 @@ namespace PDFParse
             }
         }
 
-        protected void ApplyFilters(PDFObject obj)
-        {
-            PDFDictionary streamParams;
-            if (obj.TryGet(out streamParams))
-            {
-                PDFInteger length;
-                if (streamParams.TryGet("Length", out length))
-                {
-                    PDFStream data = new PDFStream { Data = new byte[length.Value] };
-                    Array.Copy(obj.Stream.Data, data.Data, data.Data.Length);
-
-                    PDFList filters;
-                    PDFName filter;
-
-                    if (streamParams.TryGet("Filter", out filter))
-                    {
-                        filters = new PDFList { filter };
-                    }
-                    else
-                    {
-                        streamParams.TryGet("Filter", out filters);
-                    }
-
-                    if (filters != null)
-                    {
-                        PDFDictionary decodeparams;
-                        PDFList decodeparamslist;
-
-                        if (streamParams.TryGet("DecodeParams", out decodeparams))
-                        {
-                            decodeparamslist = new PDFList { decodeparams };
-                        }
-                        else
-                        {
-                            streamParams.TryGet("DecodeParams", out decodeparamslist);
-
-                            if (decodeparamslist == null)
-                            {
-                                decodeparamslist = new PDFList();
-                            }
-                        }
-
-                        for (int i = 0; i < filters.Count; i++)
-                        {
-                            string filtername = filters.Get<PDFName>(i).Name;
-                            PDFDictionary filterparams;
-                            decodeparamslist.TryGet<PDFDictionary>(i, out filterparams);
-                            data = data.ApplyFilter(filtername, filterparams, streamParams);
-                        }
-                    }
-
-                    streamParams.Remove("Filter");
-                    streamParams.Remove("Length");
-                    streamParams.Remove("DecodeParms");
-
-                    obj.Stream = data;
-                }
-            }
-        }
-
         protected static PDFDocument ParseDocument(ByteStreamReader reader)
         {
             PDFDocument doc = new PDFDocument();
@@ -119,18 +59,16 @@ namespace PDFParse
                             }
                         }
                     }
+
+                    /*
                     PDFObject parent;
                     if (dict.TryGet("Parent", out parent))
                     {
                         obj.Parent = parent;
                         parent.Children.Add(obj);
                     }
+                     */
                 }
-            }
-
-            foreach (PDFObject obj in doc.Objects.Values)
-            {
-                doc.ApplyFilters(obj);
             }
 
             foreach (PDFObject page in doc.Pages)

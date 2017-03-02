@@ -113,8 +113,104 @@ namespace PDFParse.Primitives
             obj.Version = (int)tokens.Pop<PDFInteger>().Value;
             obj.ID = (int)tokens.Pop<PDFInteger>().Value;
 
+            obj.ApplyFilters();
+
             return obj;
         }
-        
+
+        public static IEnumerable<PDFObject> FromObjStm(PDFObject sobj)
+        {
+            PDFInteger nobjsv;
+            if (sobj.TryGet("N", out nobjsv))
+            {
+                int nobjs = (int)nobjsv.Value;
+                PDFObject[] objs = new PDFObject[nobjs];
+                PDFTokenStack stack = new PDFTokenStack();
+                PDFTokenizer tokens = new PDFTokenizer(new ByteStreamReader(sobj.Stream.Data));
+
+                foreach (IPDFToken token in tokens)
+                {
+                    stack.ProcessToken(token);
+                }
+
+                for (int i = 0; i < nobjs; i++)
+                {
+                    objs[i] = new PDFObject { Value = stack.Pop<IPDFElement>() };
+                }
+
+                for (int i = 0; i < nobjs; i++)
+                {
+                    int offset = (int)stack.Pop<PDFInteger>().Value;
+                    objs[i].ID = (int)stack.Pop<PDFInteger>().Value;
+                    objs[i].Version = 0;
+                }
+
+                return objs;
+            }
+            else
+            {
+                return new PDFObject[0];
+            }
+        }
+
+        protected void ApplyFilters()
+        {
+            PDFDictionary streamParams;
+            if (TryGet(out streamParams))
+            {
+                PDFInteger length;
+                if (streamParams.TryGet("Length", out length))
+                {
+                    PDFStream data = new PDFStream { Data = new byte[length.Value] };
+                    Array.Copy(Stream.Data, data.Data, data.Data.Length);
+
+                    PDFList filters;
+                    PDFName filter;
+
+                    if (streamParams.TryGet("Filter", out filter))
+                    {
+                        filters = new PDFList { filter };
+                    }
+                    else
+                    {
+                        streamParams.TryGet("Filter", out filters);
+                    }
+
+                    if (filters != null)
+                    {
+                        PDFDictionary decodeparams;
+                        PDFList decodeparamslist;
+
+                        if (streamParams.TryGet("DecodeParams", out decodeparams))
+                        {
+                            decodeparamslist = new PDFList { decodeparams };
+                        }
+                        else
+                        {
+                            streamParams.TryGet("DecodeParams", out decodeparamslist);
+
+                            if (decodeparamslist == null)
+                            {
+                                decodeparamslist = new PDFList();
+                            }
+                        }
+
+                        for (int i = 0; i < filters.Count; i++)
+                        {
+                            string filtername = filters.Get<PDFName>(i).Name;
+                            PDFDictionary filterparams;
+                            decodeparamslist.TryGet<PDFDictionary>(i, out filterparams);
+                            data = data.ApplyFilter(filtername, filterparams, streamParams);
+                        }
+                    }
+
+                    streamParams.Remove("Filter");
+                    streamParams.Remove("Length");
+                    streamParams.Remove("DecodeParms");
+
+                    Stream = data;
+                }
+            }
+        }
     }
 }
