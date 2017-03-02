@@ -7,6 +7,7 @@ namespace PDFParse
 {
     public enum PDFTokenType
     {
+        None,
         Comment,
         Integer,
         Double,
@@ -21,6 +22,7 @@ namespace PDFParse
         StartDictionary,
         EndDictionary,
         Dictionary,
+        Keyword,
         ObjectRef,
         StartObject,
         EndObject,

@@ -8,5 +8,10 @@ namespace PDFParse.Primitives
     public struct PDFNull : IPDFElement
     {
         public PDFTokenType TokenType { get { return PDFTokenType.Null; } }
+
+        public override string ToString()
+        {
+            return "null";
+        }
     }
 }

@@ -133,6 +133,30 @@ namespace PDFParse
                 doc.ApplyFilters(obj);
             }
 
+            foreach (PDFObject page in doc.Pages)
+            {
+                IPDFElement content;
+                if (page.TryGet<IPDFElement>("Contents", out content))
+                {
+                    if (content is PDFList)
+                    {
+                        foreach (IPDFElement elem in (PDFList)content)
+                        {
+                            if (elem is PDFObject)
+                            {
+                                PDFObject contentobj = (PDFObject)elem;
+                                contentobj.Stream = new PDFContent(contentobj.Stream);
+                            }
+                        }
+                    }
+                    else if (content is PDFObject)
+                    {
+                        PDFObject contentobj = (PDFObject)content;
+                        contentobj.Stream = new PDFContent(contentobj.Stream);
+                    }
+                }
+            }
+
             return doc;
         }
 

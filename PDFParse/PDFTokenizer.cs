@@ -11,10 +11,12 @@ namespace PDFParse
     public class PDFTokenizer : IEnumerable<IPDFToken>
     {
         protected ByteStreamReader reader;
+        public bool UseStreamKeyword { get; set; }
 
-        public PDFTokenizer(ByteStreamReader reader)
+        public PDFTokenizer(ByteStreamReader reader, bool useStreamKeyword = false)
         {
             this.reader = reader;
+            this.UseStreamKeyword = useStreamKeyword;
         }
 
         protected IPDFToken ReadComment()
@@ -38,7 +40,7 @@ namespace PDFParse
         protected IPDFToken ReadName()
         {
             StringBuilder sb = new StringBuilder();
-            int len = reader.FindAny(" \t\r\f\n%/[]<>()", false);
+            int len = reader.FindAny(" \0\t\r\f\n%/[]<>()", false);
 
             for (int i = 0; i < len; i++)
             {
@@ -66,6 +68,10 @@ namespace PDFParse
             if (reader.Peek == '-')
             {
                 data.Add(reader.Read());
+            }
+            else if (reader.Peek == '+')
+            {
+                reader.Read();
             }
 
             data.AddRange(reader.ReadWhileAny("0123456789"));
@@ -174,7 +180,7 @@ namespace PDFParse
         {
             if (reader.Peek == '\r') reader.Read();
             if (reader.Peek == '\n') reader.Read();
-            byte[] data = reader.ReadUntil("endstream", " \r\n\t\f");
+            byte[] data = reader.ReadUntil("endstream", " \0\r\n\t\f");
             reader.Read("endstream".Length);
             return new PDFStream { Data = data };
         }
@@ -183,29 +189,19 @@ namespace PDFParse
         {
             string keyword = ISO88591.GetString(reader.ReadUntilAny(" \t\r\f\n%/[]<>()"));
 
-            switch (keyword)
+            if (keyword == "stream" && UseStreamKeyword)
             {
-                case "true": return new PDFBoolean { Value = true };
-                case "false": return new PDFBoolean { Value = false };
-                case "null": return new PDFNull();
-                case "obj": return new PDFToken(PDFTokenType.StartObject);
-                case "endobj": return new PDFToken(PDFTokenType.EndObject);
-                case "xref": return new PDFToken(PDFTokenType.Xref);
-                case "startxref": return new PDFToken(PDFTokenType.StartXref);
-                case "trailer": return new PDFToken(PDFTokenType.Trailer);
-                case "n": return new PDFToken(PDFTokenType.XrefEntryInUse);
-                case "f": return new PDFToken(PDFTokenType.XrefEntryFree);
-                case "R": return new PDFToken(PDFTokenType.ObjectRef);
-                case "stream": return ReadStream();
-                default: throw new InvalidDataException(String.Format("Unknown keyword '{0}'", keyword));
+                return ReadStream();
             }
+
+            return new PDFKeyword { Name = keyword };
         }
 
         public IPDFToken Read()
         {
             while (!reader.EOF)
             {
-                reader.ReadWhileAny("\r\n\t\f ", true);
+                reader.ReadWhileAny("\0\r\n\t\f ", true);
 
                 if (reader.EOF)
                 {
@@ -224,7 +220,7 @@ namespace PDFParse
                         return comment;
                     }
                 }
-                else if (c == '-' || (c >= '0' && c <= '9'))
+                else if (c == '-' || c == '+' || (c >= '0' && c <= '9'))
                 {
                     return ReadNumber();
                 }

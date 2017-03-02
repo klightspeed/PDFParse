@@ -125,7 +125,7 @@ namespace PDFParse
 
         public void Load(ByteStreamReader reader)
         {
-            Load(new PDFTokenizer(reader));
+            Load(new PDFTokenizer(reader, true));
         }
     }
 }

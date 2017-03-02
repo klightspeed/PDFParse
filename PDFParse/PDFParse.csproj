@@ -62,11 +62,16 @@
     <Compile Include="PDFTokenType.cs" />
     <Compile Include="Primitives\PDFBoolean.cs" />
     <Compile Include="Primitives\PDFComment.cs" />
+    <Compile Include="Primitives\PDFContent.cs" />
+    <Compile Include="Primitives\PDFContentBlock.cs" />
+    <Compile Include="Primitives\PDFContentOperator.cs" />
+    <Compile Include="Primitives\PDFContentTokenStack.cs" />
     <Compile Include="Primitives\PDFDictionary.cs" />
     <Compile Include="Primitives\PDFDouble.cs" />
     <Compile Include="Primitives\PDFHexString.cs" />
     <Compile Include="Primitives\PDFImage.cs" />
     <Compile Include="Primitives\PDFInteger.cs" />
+    <Compile Include="Primitives\PDFKeyword.cs" />
     <Compile Include="Primitives\PDFList.cs" />
     <Compile Include="Primitives\PDFName.cs" />
     <Compile Include="Primitives\PDFNull.cs" />

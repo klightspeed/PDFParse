@@ -9,5 +9,10 @@ namespace PDFParse.Primitives
     {
         public PDFTokenType TokenType { get { return PDFTokenType.String; } }
         public string Value { get; set; }
+
+        public override string ToString()
+        {
+            return "(" + Value + ")";
+        }
     }
 }

@@ -19,12 +19,17 @@ namespace PDFParse
             return (T)token;
         }
 
-        public static bool TryPop<T>(this Stack<IPDFToken> tokens, out T val)
-            where T : IPDFToken
+        public static bool TryPop<T>(this Stack<IPDFToken> tokens, out T val, Func<T, bool> predicate)
         {
+            if (tokens.Count == 0)
+            {
+                val = default(T);
+                return false;
+            }
+
             IPDFToken token = tokens.Peek();
 
-            if (token is T)
+            if (token is T && predicate((T)token))
             {
                 val = (T)tokens.Pop();
                 return true;
@@ -34,6 +39,30 @@ namespace PDFParse
                 val = default(T);
                 return false;
             }
+        }
+
+        public static bool TryPop<T>(this Stack<IPDFToken> tokens, out T val)
+            where T : IPDFToken
+        {
+            return TryPop<T>(tokens, out val, v => true);
+        }
+
+        public static bool TryPop<T>(this Stack<IPDFToken> tokens, PDFTokenType expected, out T val)
+            where T : IPDFToken
+        {
+            return TryPop<T>(tokens, out val, v => v.TokenType == expected);
+        }
+
+        public static bool TryPopWhile<T>(this Stack<IPDFToken> tokens, out T val, params PDFTokenType[] expected)
+            where T : IPDFToken
+        {
+            return TryPop<T>(tokens, out val, v => expected.Contains(v.TokenType));
+        }
+
+        public static bool TryPopUntil<T>(this Stack<IPDFToken> tokens, out T val, params PDFTokenType[] expected)
+            where T : IPDFToken
+        {
+            return TryPop<T>(tokens, out val, v => !expected.Contains(v.TokenType));
         }
 
         public static T TryPop<T>(this Stack<IPDFToken> tokens)
