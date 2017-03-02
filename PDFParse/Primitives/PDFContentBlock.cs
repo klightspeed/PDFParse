@@ -86,8 +86,9 @@ namespace PDFParse.Primitives
         {
             PointF pos = TextPos;
             double rot = Rot;
+            PDFName blocktype = BlockType;
 
-            return BlockType.Name + " @(" + pos.X.ToString() + ", " + pos.Y.ToString() + ") Rot(" + rot.ToString() + "): " + Text;
+            return (blocktype.Name ?? "") + " @(" + pos.X.ToString() + ", " + pos.Y.ToString() + ") Rot(" + rot.ToString() + "): " + Text;
             //return String.Join(" ", new[] { StartMarker.ToString() }.Concat(Content.Select(s => s.ToString())).Concat(Arguments.Select(s => s.ToString()))) + " " + Name;
         }
     }
