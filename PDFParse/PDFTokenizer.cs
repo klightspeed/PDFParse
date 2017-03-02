@@ -178,7 +178,7 @@ namespace PDFParse
 
                 for (int i = 0; i < chars.Length; i++)
                 {
-                    chars[i] = (char)(((int)bytes[i * 2 + 2] << 8) | (int)bytes[i * 2 + 3]);
+                    chars[i] = (char)(((int)bytes[i * 2 + 3] << 8) | (int)bytes[i * 2 + 2]);
                 }
 
                 return new PDFString { Value = new String(chars) };
