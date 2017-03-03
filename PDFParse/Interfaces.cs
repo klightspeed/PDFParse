@@ -26,6 +26,11 @@ namespace PDFParse
         PDFStream Stream { get; }
     }
 
+    public interface IPDFObjRef : IPDFElement
+    {
+        PDFObjRef ObjRef { get; }
+    }
+
     public interface IPDFElement : IPDFToken
     {
     }

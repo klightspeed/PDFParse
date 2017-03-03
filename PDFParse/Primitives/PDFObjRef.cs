@@ -5,11 +5,13 @@ using System.Text;
 
 namespace PDFParse.Primitives
 {
-    public struct PDFObjRef : IPDFElement, IComparable<PDFObjRef>, IEquatable<PDFObjRef>
+    public struct PDFObjRef : IPDFElement, IComparable<PDFObjRef>, IEquatable<PDFObjRef>, IPDFObjRef
     {
         public PDFTokenType TokenType { get { return PDFTokenType.ObjectRef; } }
         public int ID { get; set; }
         public int Version { get; set; }
+
+        PDFObjRef IPDFObjRef.ObjRef { get { return this; } }
 
         public override int GetHashCode()
         {

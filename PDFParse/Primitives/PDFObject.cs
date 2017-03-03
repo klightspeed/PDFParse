@@ -6,7 +6,7 @@ using System.Text;
 
 namespace PDFParse.Primitives
 {
-    public class PDFObject : IPDFElement, IPDFDictionary, IPDFList, IPDFStream
+    public class PDFObject : IPDFElement, IPDFDictionary, IPDFList, IPDFStream, IPDFObjRef
     {
         public PDFTokenType TokenType { get { return PDFTokenType.Object; } }
         public int ID { get; set; }
@@ -18,6 +18,7 @@ namespace PDFParse.Primitives
         PDFStream IPDFStream.Stream { get { return Value as PDFStream; } }
         PDFDictionary IPDFDictionary.Dict { get { return Value is PDFStream ? ((PDFStream)Value).Options : Value as PDFDictionary; } }
         PDFList IPDFList.List { get { return Value as PDFList; } }
+        PDFObjRef IPDFObjRef.ObjRef { get { return ToObjRef(); } }
 
         public PDFObject()
         {
