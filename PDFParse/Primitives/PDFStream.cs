@@ -11,6 +11,15 @@ namespace PDFParse.Primitives
     {
         public PDFTokenType TokenType { get { return PDFTokenType.Stream; } }
         public byte[] Data { get; set; }
+        public PDFObject Object { get; set; }
+
+        public PDFStream() { }
+
+        public PDFStream(PDFStream other)
+        {
+            this.Data = other.Data;
+            this.Object = other.Object;
+        }
 
         public PDFStream FlateDecode(PDFDictionary filterParams, PDFDictionary streamParams)
         {
@@ -30,7 +39,7 @@ namespace PDFParse.Primitives
 
                 Array.Resize(ref outdata, pos);
 
-                return new PDFStream { Data = outdata };
+                return new PDFStream { Data = outdata, Object = Object };
             }
         }
 

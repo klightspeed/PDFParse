@@ -12,9 +12,8 @@ namespace PDFParse.Primitives
         public Image Image { get; set; }
 
         public PDFImage(PDFStream stream, PDFDictionary filterParams, PDFDictionary streamParams)
+            : base(stream)
         {
-            Data = stream.Data;
-
             try
             {
                 Image = new Bitmap(new MemoryStream(Data));

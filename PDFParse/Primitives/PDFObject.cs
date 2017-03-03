@@ -161,7 +161,7 @@ namespace PDFParse.Primitives
                 PDFInteger length;
                 if (streamParams.TryGet("Length", out length))
                 {
-                    PDFStream data = new PDFStream { Data = new byte[length.Value] };
+                    PDFStream data = new PDFStream { Data = new byte[length.Value], Object = this };
                     Array.Copy(Stream.Data, data.Data, data.Data.Length);
 
                     PDFList filters;

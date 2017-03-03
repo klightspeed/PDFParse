@@ -90,14 +90,14 @@ namespace PDFParse
                                 }
                             }
                         }
-                        page.Stream = new PDFContent(data.ToArray());
+                        page.Stream = new PDFContent(data.ToArray(), page);
                     }
                     else if (content is PDFObject)
                     {
                         PDFObject contentobj = (PDFObject)content;
                         if (contentobj.Stream != null)
                         {
-                            page.Stream = new PDFContent(contentobj.Stream.Data);
+                            page.Stream = new PDFContent(contentobj.Stream.Data, page);
                         }
                     }
                 }
