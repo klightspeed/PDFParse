@@ -81,6 +81,8 @@ namespace PDFParse.Primitives
         }
 
         public PDFName BlockType { get { return StartMarker.Arguments.OfType<PDFName>().FirstOrDefault(); } }
+        public PDFDictionary BlockOptions { get { return StartMarker.Arguments.OfType<PDFDictionary>().FirstOrDefault(); } }
+
 
         public override string ToString()
         {
