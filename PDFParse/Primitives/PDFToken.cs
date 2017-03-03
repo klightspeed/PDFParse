@@ -14,7 +14,7 @@ namespace PDFParse.Primitives
             this.TokenType = tokenType;
         }
 
-        public string ToString()
+        public override string ToString()
         {
             switch (this.TokenType)
             {
