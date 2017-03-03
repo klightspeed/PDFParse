@@ -19,7 +19,7 @@ namespace PDFParse.Primitives
                 case "xref": return new PDFToken(PDFTokenType.Xref);
                 case "startxref": return new PDFToken(PDFTokenType.StartXref);
                 case "endobj": return PDFObject.Parse(this);
-                case "trailer": return PDFTrailer.Parse(this);
+                case "trailer": return PDFXref.Parse(this);
                 case "n": return PDFXrefEntry.Parse(this, PDFTokenType.XrefEntryInUse);
                 case "f": return PDFXrefEntry.Parse(this, PDFTokenType.XrefEntryFree);
                 case "R": return PDFObjRef.Parse(this);

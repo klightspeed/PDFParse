@@ -161,7 +161,7 @@ namespace PDFParse
                 }
             }
 
-            if (bytes[0] == 0xFE && bytes[1] == 0xFF)
+            if (bytes.Count >= 2 && (bytes.Count % 2) == 0 && bytes[0] == 0xFE && bytes[1] == 0xFF)
             {
                 char[] chars = new char[bytes.Count / 2 - 1];
 
@@ -172,7 +172,7 @@ namespace PDFParse
 
                 return new PDFString { Value = new String(chars) };
             }
-            else if (bytes[0] == 0xFF && bytes[1] == 0xFE)
+            else if (bytes.Count >= 2 && (bytes.Count % 2) == 0 && bytes[0] == 0xFF && bytes[1] == 0xFE)
             {
                 char[] chars = new char[bytes.Count / 2 - 1];
 

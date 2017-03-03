@@ -66,6 +66,7 @@ namespace PDFParse.Primitives
             {
                 case "FlateDecode": return FlateDecode(filterParams);
                 case "DCTDecode": return new PDFImage(this, filterParams);
+                case "CCITTFaxDecode": return this;
                 default: throw new NotImplementedException();
             }
         }
