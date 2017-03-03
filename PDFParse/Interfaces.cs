@@ -14,6 +14,11 @@ namespace PDFParse
     {
     }
 
+    public interface IPDFParsableToken
+    {
+        IPDFToken Parse(Stack<IPDFToken> stack);
+    }
+
     public interface IPDFToken
     {
         PDFTokenType TokenType { get; }

@@ -11,7 +11,7 @@ namespace PDFParse.Primitives
     {
         public Image Image { get; set; }
 
-        public PDFImage(PDFStream stream, PDFDictionary filterParams, PDFDictionary streamParams)
+        public PDFImage(PDFStream stream, PDFDictionary filterParams)
             : base(stream)
         {
             try

@@ -28,7 +28,7 @@ namespace PDFParse.Primitives
             else if (tokens.Has(PDFTokenType.Object))
             {
                 trailer.TrailerObject = tokens.TryPop<PDFObject>();
-                trailer.TrailerDictionary = (PDFDictionary)trailer.TrailerObject.Value;
+                trailer.TrailerDictionary = trailer.TrailerObject.Dict;
             }
             else
             {

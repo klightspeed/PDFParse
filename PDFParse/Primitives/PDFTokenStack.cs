@@ -29,25 +29,23 @@ namespace PDFParse.Primitives
 
         public void ProcessToken(IPDFToken token)
         {
-            switch (token.TokenType)
+            if (token is IPDFParsableToken)
             {
-                case PDFTokenType.Comment:
-                    break;
-                case PDFTokenType.EndDictionary:
-                    this.Push(PDFDictionary.Parse(this));
-                    break;
-                case PDFTokenType.EndList:
-                    this.Push(PDFList.Parse(this));
-                    break;
-                case PDFTokenType.EOF:
-                    this.Push(PDFTrailer.Parse(this));
-                    break;
-                case PDFTokenType.Keyword:
-                    this.Push(ProcessKeyword((PDFKeyword)token));
-                    break;
-                default:
-                    this.Push(token);
-                    break;
+                this.Push(((IPDFParsableToken)token).Parse(this));
+            }
+            else
+            {
+                switch (token.TokenType)
+                {
+                    case PDFTokenType.Comment:
+                        break;
+                    case PDFTokenType.Keyword:
+                        this.Push(ProcessKeyword((PDFKeyword)token));
+                        break;
+                    default:
+                        this.Push(token);
+                        break;
+                }
             }
         }
     }

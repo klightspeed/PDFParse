@@ -14,7 +14,7 @@ namespace PDFParse.Primitives
         public PDFContent(byte[] data, PDFObject page)
         {
             this.Data = data;
-            this.Object = page;
+            this.Options = page.Value as PDFDictionary;
             ByteStreamReader reader = new ByteStreamReader(Data);
             PDFTokenizer tokenizer = new PDFTokenizer(reader);
 
