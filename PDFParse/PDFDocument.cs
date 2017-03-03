@@ -78,19 +78,27 @@ namespace PDFParse
                 {
                     if (content is PDFList)
                     {
+                        List<byte> data = new List<byte>();
                         foreach (IPDFElement elem in (PDFList)content)
                         {
                             if (elem is PDFObject)
                             {
                                 PDFObject contentobj = (PDFObject)elem;
-                                contentobj.Stream = new PDFContent(contentobj.Stream);
+                                if (contentobj.Stream != null)
+                                {
+                                    data.AddRange(contentobj.Stream.Data);
+                                }
                             }
                         }
+                        page.Stream = new PDFContent(data.ToArray());
                     }
                     else if (content is PDFObject)
                     {
                         PDFObject contentobj = (PDFObject)content;
-                        contentobj.Stream = new PDFContent(contentobj.Stream);
+                        if (contentobj.Stream != null)
+                        {
+                            page.Stream = new PDFContent(contentobj.Stream.Data);
+                        }
                     }
                 }
             }

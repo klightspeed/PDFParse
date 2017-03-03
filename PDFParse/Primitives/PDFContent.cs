@@ -11,9 +11,9 @@ namespace PDFParse.Primitives
 
         public string Text { get { return String.Join("\n", Tokens.OfType<PDFContentOperator>().Select(c => c.Text).Where(t => t != null)); } }
 
-        public PDFContent(PDFStream stream)
+        public PDFContent(byte[] data)
         {
-            this.Data = stream.Data;
+            this.Data = data;
             ByteStreamReader reader = new ByteStreamReader(Data);
             PDFTokenizer tokenizer = new PDFTokenizer(reader);
 
