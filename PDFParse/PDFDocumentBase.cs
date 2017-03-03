@@ -24,14 +24,24 @@ namespace PDFParse
             return Objects[objref];
         }
 
-        protected PDFList ResolveReferences(PDFObject parent, PDFList list)
+        protected IPDFList ResolveReferences(PDFObject parent, IPDFList list)
         {
-            return new PDFList(list.Select(v => ResolveReferences(parent, v)));
+            PDFList _list = list.List;
+            for (int i = 0; i < _list.Count; i++)
+            {
+                _list[i] = ResolveReferences(parent, _list[i]);
+            }
+            return list;
         }
 
-        protected PDFDictionary ResolveReferences(PDFObject parent, PDFDictionary dict)
+        protected IPDFDictionary ResolveReferences(PDFObject parent, IPDFDictionary dict)
         {
-            return new PDFDictionary(dict.Select(kvp => new KeyValuePair<string, IPDFElement>(kvp.Key, ResolveReferences(parent, kvp.Value))));
+            PDFDictionary _dict = dict.Dict;
+            foreach (string key in _dict.Keys.ToArray())
+            {
+                _dict[key] = ResolveReferences(parent, _dict[key]);
+            }
+            return dict;
         }
 
         protected PDFObject ResolveReferences(PDFObject parent, PDFObjRef objref)
@@ -41,13 +51,13 @@ namespace PDFParse
 
         protected IPDFElement ResolveReferences(PDFObject parent, IPDFElement val)
         {
-            if (val is PDFList)
+            if (val is IPDFList && ((IPDFList)val).List != null)
             {
-                return ResolveReferences(parent, (PDFList)val);
+                return ResolveReferences(parent, (IPDFList)val);
             }
-            else if (val is PDFDictionary)
+            else if (val is IPDFDictionary && ((IPDFDictionary)val).Dict != null)
             {
-                return ResolveReferences(parent, (PDFDictionary)val);
+                return ResolveReferences(parent, (IPDFDictionary)val);
             }
             else if (val is PDFObjRef)
             {
@@ -69,8 +79,8 @@ namespace PDFParse
 
         protected void AddToObjectTypes(PDFObject obj)
         {
-            PDFDictionary dict;
-            if (obj.TryGet(out dict))
+            PDFDictionary dict = ((IPDFDictionary)obj).Dict;
+            if (dict != null)
             {
                 PDFName type;
                 if (dict.TryGet("Type", out type))
@@ -109,9 +119,10 @@ namespace PDFParse
                     Objects[obj.ToObjRef()] = obj;
 
                     PDFName type;
-                    if (obj.TryGet("Type", out type) && type.Name == "ObjStm" && obj.Stream != null)
+                    IPDFStream ostream = (IPDFStream)obj;
+                    if (ostream.Stream != null && ostream.Stream.Options.TryGet("Type", out type) && type.Name == "ObjStm")
                     {
-                        foreach (PDFObject sobj in PDFObject.FromObjStm(obj))
+                        foreach (PDFObject sobj in PDFObject.FromObjStm(ostream.Stream))
                         {
                             Objects[sobj.ToObjRef()] = sobj;
                         }

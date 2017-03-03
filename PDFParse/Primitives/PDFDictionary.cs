@@ -6,7 +6,7 @@ using System.Text;
 
 namespace PDFParse.Primitives
 {
-    public class PDFDictionary : Dictionary<string, IPDFElement>, IPDFElement
+    public class PDFDictionary : Dictionary<string, IPDFElement>, IPDFElement, IPDFDictionary
     {
         public PDFTokenType TokenType { get { return PDFTokenType.Dictionary; } }
 
@@ -19,6 +19,8 @@ namespace PDFParse.Primitives
                 base.Add(kvp.Key, kvp.Value);
             }
         }
+
+        PDFDictionary IPDFDictionary.Dict { get { return this; } }
 
         public bool TryGet<T>(string name, out T val)
             where T : IPDFElement

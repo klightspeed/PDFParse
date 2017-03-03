@@ -6,9 +6,11 @@ using System.Text;
 
 namespace PDFParse.Primitives
 {
-    public class PDFList : List<IPDFElement>, IPDFElement
+    public class PDFList : List<IPDFElement>, IPDFElement, IPDFList
     {
         public PDFTokenType TokenType { get { return PDFTokenType.List; } }
+
+        PDFList IPDFList.List { get { return this; } }
 
         public PDFList() { }
 

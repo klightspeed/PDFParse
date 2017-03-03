@@ -6,7 +6,7 @@ using System.Text;
 
 namespace PDFParse.Primitives
 {
-    public class PDFObject : IPDFElement
+    public class PDFObject : IPDFElement, IPDFDictionary, IPDFList, IPDFStream
     {
         public PDFTokenType TokenType { get { return PDFTokenType.Object; } }
         public int ID { get; set; }
@@ -14,74 +14,14 @@ namespace PDFParse.Primitives
         public IPDFElement Value { get; set; }
         public int RefCount { get; set; }
         public List<PDFObject> ReferencedBy { get; private set; }
-        public PDFObject Parent { get; set; }
-        public List<PDFObject> Children { get; set; }
 
-        public PDFStream Stream { get { return Value as PDFStream; } }
-        public PDFDictionary Dict { get { return Value is PDFStream ? ((PDFStream)Value).Options : Value as PDFDictionary; } }
-
-        public bool TryGet<T>(out T val)
-            where T : IPDFElement
-        {
-            if (Value != null && Value is T)
-            {
-                val = (T)Value;
-                return true;
-            }
-            else
-            {
-                val = default(T);
-                return false;
-            }
-        }
-
-        public T Get<T>()
-            where T : IPDFElement
-        {
-            T val;
-            if (TryGet(out val))
-            {
-                return val;
-            }
-            else
-            {
-                throw new InvalidDataException();
-            }
-        }
-
-        public bool TryGet<T>(string name, out T val)
-            where T : IPDFElement
-        {
-            PDFDictionary dict;
-            if (TryGet(out dict) && dict.TryGet(name, out val))
-            {
-                return true;
-            }
-            else
-            {
-                val = default(T);
-                return false;
-            }
-        }
-
-        public T Get<T>(string name)
-            where T : IPDFElement
-        {
-            T val;
-            if (TryGet(name, out val))
-            {
-                return val;
-            }
-            else
-            {
-                throw new InvalidDataException();
-            }
-        }
+        PDFStream IPDFStream.Stream { get { return Value as PDFStream; } }
+        PDFDictionary IPDFDictionary.Dict { get { return Value is PDFStream ? ((PDFStream)Value).Options : Value as PDFDictionary; } }
+        PDFList IPDFList.List { get { return Value as PDFList; } }
 
         public PDFObject()
         {
             ReferencedBy = new List<PDFObject>();
-            Children = new List<PDFObject>();
         }
 
         public PDFObject(int id, int gen) : this()
@@ -116,15 +56,15 @@ namespace PDFParse.Primitives
             return obj;
         }
 
-        public static IEnumerable<PDFObject> FromObjStm(PDFObject sobj)
+        public static IEnumerable<PDFObject> FromObjStm(PDFStream sobj)
         {
             PDFInteger nobjsv;
-            if (sobj.TryGet("N", out nobjsv))
+            if (sobj.Options.TryGet("N", out nobjsv))
             {
                 int nobjs = (int)nobjsv.Value;
                 PDFObject[] objs = new PDFObject[nobjs];
                 PDFTokenStack stack = new PDFTokenStack();
-                PDFTokenizer tokens = new PDFTokenizer(new ByteStreamReader(sobj.Stream.Data));
+                PDFTokenizer tokens = new PDFTokenizer(new ByteStreamReader(sobj.Data));
 
                 foreach (IPDFToken token in tokens)
                 {

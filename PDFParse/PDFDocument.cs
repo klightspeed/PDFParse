@@ -12,19 +12,20 @@ namespace PDFParse
 
     public class PDFDocument : PDFDocumentBase
     {
-        public PDFObject Root { get { return Trailer.TrailerDictionary.Get<PDFObject>("Root"); } }
-        public PDFObject Info { get { return Trailer.TrailerDictionary.Get<PDFObject>("Info"); } }
+        public IPDFDictionary Root { get { return Trailer.TrailerDictionary.Dict.Get<IPDFDictionary>("Root"); } }
+        public IPDFDictionary Info { get { return Trailer.TrailerDictionary.Dict.Get<IPDFDictionary>("Info"); } }
 
-        public IEnumerable<PDFObject> Pages { get { return GetPages(Root.Get<PDFObject>("Pages")); } }
+        public IEnumerable<IPDFDictionary> Pages { get { return GetPages(Root.Dict.Get<IPDFDictionary>("Pages")); } }
 
-        protected static IEnumerable<PDFObject> GetPages(PDFObject root)
+        protected static IEnumerable<IPDFDictionary> GetPages(IPDFDictionary root)
         {
             PDFName type;
-            if (root.Value == null || (root.TryGet("Type", out type) && type.Name == "Pages"))
+            IPDFList kids;
+            if (root.Dict.TryGet("Type", out type) && type.Name == "Pages" && root.Dict.TryGet("Kids", out kids))
             {
-                foreach (PDFObject node in root.Children)
+                foreach (IPDFDictionary node in kids.List.OfType<IPDFDictionary>())
                 {
-                    foreach (PDFObject leaf in GetPages(node))
+                    foreach (IPDFDictionary leaf in GetPages(node))
                     {
                         yield return leaf;
                     }
@@ -41,64 +42,29 @@ namespace PDFParse
             PDFDocument doc = new PDFDocument();
             doc.Load(reader);
 
-            foreach (PDFObject obj in doc.Objects.Values)
-            {
-                PDFDictionary dict;
-                if (obj.TryGet(out dict))
-                {
-                    PDFList kids;
-                    if (dict.TryGet("Kids", out kids))
-                    {
-                        for (int i = 0; i < kids.Count; i++)
-                        {
-                            PDFObject kid;
-                            if (kids.TryGet(i, out kid))
-                            {
-                                obj.Children.Add(kid);
-                                kid.Parent = obj;
-                            }
-                        }
-                    }
-
-                    /*
-                    PDFObject parent;
-                    if (dict.TryGet("Parent", out parent))
-                    {
-                        obj.Parent = parent;
-                        parent.Children.Add(obj);
-                    }
-                     */
-                }
-            }
-
-            foreach (PDFObject page in doc.Pages)
+            foreach (IPDFDictionary page in doc.Pages)
             {
                 IPDFElement content;
-                if (page.TryGet<IPDFElement>("Contents", out content))
+                if (page.Dict.TryGet<IPDFElement>("Contents", out content))
                 {
-                    if (content is PDFList)
+                    IPDFList clist = content as IPDFList;
+                    IPDFStream cstream = content as IPDFStream;
+
+                    if (clist != null && clist.List != null)
                     {
                         List<byte> data = new List<byte>();
-                        foreach (IPDFElement elem in (PDFList)content)
+                        foreach (IPDFStream elem in clist.List.OfType<IPDFStream>())
                         {
-                            if (elem is PDFObject)
+                            if (elem.Stream != null)
                             {
-                                PDFObject contentobj = (PDFObject)elem;
-                                if (contentobj.Stream != null)
-                                {
-                                    data.AddRange(contentobj.Stream.Data);
-                                }
+                                data.AddRange(elem.Stream.Data);
                             }
                         }
                         page.Dict["PageContent"] = new PDFContent(data.ToArray(), page);
                     }
-                    else if (content is PDFObject)
+                    else if (cstream != null && cstream.Stream != null)
                     {
-                        PDFObject contentobj = (PDFObject)content;
-                        if (contentobj.Stream != null)
-                        {
-                            page.Dict["PageContent"] = new PDFContent(contentobj.Stream.Data, page);
-                        }
+                        page.Dict["PageContent"] = new PDFContent(cstream.Stream.Data, page);
                     }
                 }
             }

@@ -2,12 +2,28 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using PDFParse.Primitives;
 
 namespace PDFParse
 {
     public interface IPDFValue<T> : IPDFElement
     {
         T Value { get; set; }
+    }
+
+    public interface IPDFDictionary : IPDFElement
+    {
+        PDFDictionary Dict { get; }
+    }
+
+    public interface IPDFList : IPDFElement
+    {
+        PDFList List { get; }
+    }
+
+    public interface IPDFStream : IPDFElement
+    {
+        PDFStream Stream { get; }
     }
 
     public interface IPDFElement : IPDFToken

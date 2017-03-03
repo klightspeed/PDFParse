@@ -7,11 +7,13 @@ using System.Text;
 
 namespace PDFParse.Primitives
 {
-    public class PDFStream : IPDFElement, IPDFParsableToken
+    public class PDFStream : IPDFElement, IPDFParsableToken, IPDFDictionary, IPDFStream
     {
         public PDFTokenType TokenType { get { return PDFTokenType.Stream; } }
         public byte[] Data { get; set; }
         public PDFDictionary Options { get; set; }
+        PDFDictionary IPDFDictionary.Dict { get { return Options; } }
+        PDFStream IPDFStream.Stream { get { return this; } }
 
         public PDFStream() { }
 
@@ -28,10 +30,12 @@ namespace PDFParse.Primitives
             if (stack.TryPop(out dict))
             {
                 this.Options = dict;
-                this.ApplyFilters();
+                return this.ApplyFilters();
             }
-
-            return this;
+            else
+            {
+                return this;
+            }
         }
 
         public PDFStream FlateDecode(PDFDictionary filterParams)

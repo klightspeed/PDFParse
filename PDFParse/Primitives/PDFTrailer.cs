@@ -10,8 +10,7 @@ namespace PDFParse.Primitives
     {
         public PDFTokenType TokenType { get { return PDFTokenType.Trailer; } }
         public PDFXref Xref { get; set; }
-        public PDFObject TrailerObject { get; set; }
-        public PDFDictionary TrailerDictionary { get; set; }
+        public IPDFDictionary TrailerDictionary { get; set; }
         public long TrailerOffset { get; set; }
 
         public static PDFTrailer Parse(Stack<IPDFToken> tokens)
@@ -27,8 +26,7 @@ namespace PDFParse.Primitives
             }
             else if (tokens.Has(PDFTokenType.Object))
             {
-                trailer.TrailerObject = tokens.TryPop<PDFObject>();
-                trailer.TrailerDictionary = trailer.TrailerObject.Dict;
+                trailer.TrailerDictionary = tokens.Pop<PDFObject>();
             }
             else
             {
