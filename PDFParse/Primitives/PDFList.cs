@@ -61,5 +61,10 @@ namespace PDFParse.Primitives
 
             return new PDFList(list);
         }
+
+        public override string ToString()
+        {
+            return "[ " + String.Join(" ", this.Select(v => v.ToString())) + " ]";
+        }
     }
 }

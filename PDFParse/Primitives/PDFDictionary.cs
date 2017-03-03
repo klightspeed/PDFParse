@@ -67,5 +67,9 @@ namespace PDFParse.Primitives
             return new PDFDictionary(kvps);
         }
 
+        public override string ToString()
+        {
+            return "<< " + String.Join(" ", this.Select(kvp => "/" + kvp.Key.ToString() + " " + kvp.Value.ToString())) + " >>";
+        }
     }
 }
