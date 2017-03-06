@@ -16,6 +16,7 @@ namespace PDFParse
         public IPDFDictionary Info { get { return Trailer.TrailerDictionary.Dict.Get<IPDFDictionary>("Info"); } }
         public IPDFDictionary StructTreeRoot { get { return Root.Dict.Get<IPDFDictionary>("StructTreeRoot"); } }
         public Dictionary<PDFObjRef, Dictionary<long, PDFContentBlock>> ContentBlocks { get; private set; }
+        public Dictionary<PDFObjRef, Dictionary<long, PDFContentBlock>> StructBlocks { get; private set; }
         public PDFContentBlock StructTree { get; private set; }
 
         public IEnumerable<IPDFDictionary> Pages { get { return GetPages(Root.Dict.Get<IPDFDictionary>("Pages")); } }
@@ -107,6 +108,159 @@ namespace PDFParse
             return cb;
         }
 
+        protected PDFContentBlock ProcessParentTreeLeaf(IPDFDictionary node)
+        {
+            IPDFObjRef objref;
+            IPDFElement kv;
+            PDFName type;
+
+            PDFContentBlock cb = null;
+
+            if (node.Dict.TryGet("K", out kv) && node.Dict.TryGet("Pg", out objref) && node.Dict.TryGet("S", out type))
+            {
+                cb = new PDFContentBlock
+                {
+                    StartMarker = new PDFContentOperator
+                    {
+                        Name = "BDC",
+                        Arguments = new List<IPDFToken>
+                        {
+                            type,
+                            node
+                        }
+                    },
+                    Content = new List<PDFContentOperator>()
+                };
+
+                if (kv is PDFInteger)
+                {
+                    PDFInteger mcid = (PDFInteger)kv;
+                    PDFContentBlock blk = ContentBlocks[objref.ObjRef][mcid.Value];
+                    cb.Content.Add(blk);
+                }
+                else if (kv is IPDFList && ((IPDFList)kv).List != null)
+                {
+                    PDFList kl = ((IPDFList)kv).List;
+                    for (int k = 0; k < kl.Count; k++)
+                    {
+                        IPDFElement elem;
+                        if (kl.TryGet(k, out elem))
+                        {
+                            if (elem is PDFInteger)
+                            {
+                                PDFInteger mcid = (PDFInteger)elem;
+                                if (ContentBlocks.ContainsKey(objref.ObjRef) && ContentBlocks[objref.ObjRef].ContainsKey(mcid.Value))
+                                {
+                                    PDFContentBlock blk = ContentBlocks[objref.ObjRef][mcid.Value];
+                                    cb.Content.Add(blk);
+                                }
+                            }
+                            else if (elem is IPDFDictionary)
+                            {
+                                IPDFDictionary dict = (IPDFDictionary)node;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return cb;
+        }
+
+        protected void ProcessParentTreeNode(int j, IPDFDictionary d)
+        {
+            IPDFObjRef objref;
+            IPDFElement kv;
+            PDFName type;
+            if (d.Dict.TryGet("K", out kv) && d.Dict.TryGet("Pg", out objref) && d.Dict.TryGet("S", out type))
+            {
+                PDFContentBlock cb = new PDFContentBlock
+                {
+                    StartMarker = new PDFContentOperator
+                    {
+                        Name = "BDC",
+                        Arguments = new List<IPDFToken>
+                        {
+                            type,
+                            d
+                        }
+                    },
+                    Content = new List<PDFContentOperator>()
+                };
+
+                if (kv is PDFInteger)
+                {
+                    PDFInteger mcid = (PDFInteger)kv;
+                    PDFContentBlock blk = ContentBlocks[objref.ObjRef][mcid.Value];
+                    cb.Content.Add(blk);
+                }
+                else if (kv is IPDFList && ((IPDFList)kv).List != null)
+                {
+                    PDFList kl = ((IPDFList)kv).List;
+                    for (int k = 0; k < kl.Count; k++)
+                    {
+                        IPDFElement elem;
+                        if (kl.TryGet(k, out elem))
+                        {
+                            if (elem is PDFInteger)
+                            {
+                                PDFInteger mcid = (PDFInteger)elem;
+                                if (ContentBlocks.ContainsKey(objref.ObjRef) && ContentBlocks[objref.ObjRef].ContainsKey(mcid.Value))
+                                {
+                                    PDFContentBlock blk = ContentBlocks[objref.ObjRef][mcid.Value];
+                                    cb.Content.Add(blk);
+                                }
+                            }
+                            else if (elem is IPDFDictionary)
+                            {
+                                cb.Content.Add(ProcessParentTreeLeaf((IPDFDictionary)elem));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        protected void ProcessParentTree()
+        {
+            IPDFDictionary troot = StructTreeRoot;
+            IPDFDictionary ptree;
+            if (troot.Dict.TryGet("ParentTree", out ptree))
+            {
+                IPDFList nums;
+                if (ptree.Dict.TryGet("Nums", out nums))
+                {
+                    PDFList list = nums.List;
+
+                    for (int i = 0; i < list.Count; i += 2)
+                    {
+                        PDFInteger vi;
+                        IPDFElement vv;
+                        if (list.TryGet(i, out vi) && list.TryGet(i + 1, out vv))
+                        {
+                            if (vv is IPDFList && ((IPDFList)vv).List != null)
+                            {
+                                IPDFList l = (IPDFList)vv;
+                                for (int j = 0; j < l.List.Count; j++)
+                                {
+                                    IPDFDictionary d;
+                                    if (l.List.TryGet(j, out d))
+                                    {
+                                        ProcessParentTreeNode(j, d);
+                                    }
+                                }
+                            }
+                            else if (vv is IPDFDictionary && ((IPDFDictionary)vv).Dict != null)
+                            {
+                                IPDFDictionary d = (IPDFDictionary)vv;
+                                ProcessParentTreeLeaf(d);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         protected void ProcessPageContentBlock(PDFContentBlock block, Dictionary<long, PDFContentBlock> blocksByMcid)
         {
             if (block.BlockOptions != null && block.BlockOptions.ContainsKey("MCID"))
@@ -173,6 +327,7 @@ namespace PDFParse
                 }
             }
 
+            doc.ProcessParentTree();
             doc.StructTree = doc.ProcessTreeNode(doc.StructTreeRoot, (PDFName)doc.StructTreeRoot.Dict["Type"]);
 
             return doc;
