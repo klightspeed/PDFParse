@@ -42,39 +42,46 @@ namespace PDFParse
 
         protected PDFContentBlock ProcessTreeNode(IPDFDictionary node, PDFName type)
         {
-            IPDFElement K = node.Dict["K"];
             PDFContentBlock cb = new PDFContentBlock
             {
-                Arguments = new List<IPDFToken>
+                StartMarker = new PDFContentOperator
                 {
-                    type,
-                    node
+                    Name = "BDC",
+                    Arguments = new List<IPDFToken>
+                    {
+                        type,
+                        node
+                    }
                 },
                 Content = new List<PDFContentOperator>()
             };
 
-            if (K is IPDFList && ((IPDFList)K).List != null)
+            if (node.Dict.ContainsKey("K"))
             {
-                foreach (IPDFDictionary v in ((IPDFList)K).List.OfType<IPDFDictionary>())
+                IPDFElement K = node.Dict["K"];
+                if (K is IPDFList && ((IPDFList)K).List != null)
+                {
+                    foreach (IPDFDictionary v in ((IPDFList)K).List.OfType<IPDFDictionary>())
+                    {
+                        PDFName vtype;
+                        v.Dict.TryGet("S", out vtype);
+                        cb.Content.Add(ProcessTreeNode(v, vtype));
+                    }
+                }
+                else if (K is IPDFDictionary && ((IPDFDictionary)K).Dict != null)
                 {
                     PDFName vtype;
-                    v.Dict.TryGet("S", out vtype);
-                    cb.Content.Add(ProcessTreeNode(v, vtype));
+                    ((IPDFDictionary)K).Dict.TryGet("S", out vtype);
+                    cb.Content.Add(ProcessTreeNode((IPDFDictionary)K, vtype));
                 }
-            }
-            else if (K is IPDFDictionary && ((IPDFDictionary)K).Dict != null)
-            {
-                PDFName vtype;
-                ((IPDFDictionary)K).Dict.TryGet("S", out vtype);
-                cb.Content.Add(ProcessTreeNode((IPDFDictionary)K, vtype));
-            }
-            else if (K is PDFInteger)
-            {
-                long mcid = ((PDFInteger)K).Value;
-
-                if (ContentBlocks.ContainsKey(mcid))
+                else if (K is PDFInteger)
                 {
-                    cb.Content.Add(ContentBlocks[mcid]);
+                    long mcid = ((PDFInteger)K).Value;
+
+                    if (ContentBlocks.ContainsKey(mcid))
+                    {
+                        cb.Content.Add(ContentBlocks[mcid]);
+                    }
                 }
             }
 
