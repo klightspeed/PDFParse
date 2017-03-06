@@ -20,6 +20,11 @@ namespace PDFParse
 
         public IEnumerable<IPDFDictionary> Pages { get { return GetPages(Root.Dict.Get<IPDFDictionary>("Pages")); } }
 
+        public PDFDocument()
+        {
+            this.ContentBlocks = new Dictionary<long, PDFContentBlock>();
+        }
+
         protected static IEnumerable<IPDFDictionary> GetPages(IPDFDictionary root)
         {
             PDFName type;
