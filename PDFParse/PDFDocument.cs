@@ -70,14 +70,18 @@ namespace PDFParse
                     {
                         PDFName vtype;
                         v.Dict.TryGet("S", out vtype);
-                        cb.Content.Add(ProcessTreeNode(v, vtype));
+                        PDFContentBlock blk = ProcessTreeNode(v, vtype);
+                        blk.Parent = cb;
+                        cb.Content.Add(blk);
                     }
                 }
                 else if (K is IPDFDictionary && ((IPDFDictionary)K).Dict != null)
                 {
                     PDFName vtype;
                     ((IPDFDictionary)K).Dict.TryGet("S", out vtype);
-                    cb.Content.Add(ProcessTreeNode((IPDFDictionary)K, vtype));
+                    PDFContentBlock blk = ProcessTreeNode((IPDFDictionary)K, vtype);
+                    blk.Parent = cb;
+                    cb.Content.Add(blk);
                 }
                 else if (K is PDFInteger && node.Dict.ContainsKey("Pg"))
                 {
@@ -91,7 +95,9 @@ namespace PDFParse
                             Dictionary<long, PDFContentBlock> blocksByMcid = ContentBlocks[objref.ObjRef];
                             if (blocksByMcid.ContainsKey(mcid))
                             {
-                                cb.Content.Add(blocksByMcid[mcid]);
+                                PDFContentBlock blk = blocksByMcid[mcid];
+                                blk.Parent = cb;
+                                cb.Content.Add(blk);
                             }
                         }
                     }
