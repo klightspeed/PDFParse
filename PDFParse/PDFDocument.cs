@@ -15,14 +15,14 @@ namespace PDFParse
         public IPDFDictionary Root { get { return Trailer.TrailerDictionary.Dict.Get<IPDFDictionary>("Root"); } }
         public IPDFDictionary Info { get { return Trailer.TrailerDictionary.Dict.Get<IPDFDictionary>("Info"); } }
         public IPDFDictionary StructTreeRoot { get { return Root.Dict.Get<IPDFDictionary>("StructTreeRoot"); } }
-        public Dictionary<long, PDFContentBlock> ContentBlocks { get; private set; }
+        public Dictionary<PDFObjRef, Dictionary<long, PDFContentBlock>> ContentBlocks { get; private set; }
         public PDFContentBlock StructTree { get; private set; }
 
         public IEnumerable<IPDFDictionary> Pages { get { return GetPages(Root.Dict.Get<IPDFDictionary>("Pages")); } }
 
         public PDFDocument()
         {
-            this.ContentBlocks = new Dictionary<long, PDFContentBlock>();
+            this.ContentBlocks = new Dictionary<PDFObjRef,Dictionary<long,PDFContentBlock>>();
         }
 
         protected static IEnumerable<IPDFDictionary> GetPages(IPDFDictionary root)
@@ -79,13 +79,21 @@ namespace PDFParse
                     ((IPDFDictionary)K).Dict.TryGet("S", out vtype);
                     cb.Content.Add(ProcessTreeNode((IPDFDictionary)K, vtype));
                 }
-                else if (K is PDFInteger)
+                else if (K is PDFInteger && node.Dict.ContainsKey("Pg"))
                 {
                     long mcid = ((PDFInteger)K).Value;
+                    IPDFObjRef objref;
 
-                    if (ContentBlocks.ContainsKey(mcid))
+                    if (node.Dict.TryGet("Pg", out objref))
                     {
-                        cb.Content.Add(ContentBlocks[mcid]);
+                        if (ContentBlocks.ContainsKey(objref.ObjRef))
+                        {
+                            Dictionary<long, PDFContentBlock> blocksByMcid = ContentBlocks[objref.ObjRef];
+                            if (blocksByMcid.ContainsKey(mcid))
+                            {
+                                cb.Content.Add(blocksByMcid[mcid]);
+                            }
+                        }
                     }
                 }
             }
@@ -93,28 +101,28 @@ namespace PDFParse
             return cb;
         }
 
-        protected void ProcessPageContentBlock(PDFContentBlock block)
+        protected void ProcessPageContentBlock(PDFContentBlock block, Dictionary<long, PDFContentBlock> blocksByMcid)
         {
             if (block.BlockOptions != null && block.BlockOptions.ContainsKey("MCID"))
             {
                 PDFInteger mcid;
                 if (block.BlockOptions.TryGet<PDFInteger>("MCID", out mcid))
                 {
-                    ContentBlocks[mcid.Value] = block;
+                    blocksByMcid[mcid.Value] = block;
                 }
             }
 
             foreach (PDFContentBlock cblock in block.Content.OfType<PDFContentBlock>())
             {
-                ProcessPageContentBlock(cblock);
+                ProcessPageContentBlock(cblock, blocksByMcid);
             }
         }
 
-        protected void ProcessPageContentBlocks(PDFContent content)
+        protected void ProcessPageContentBlocks(PDFContent content, Dictionary<long, PDFContentBlock> blocksByMcid)
         {
             foreach (PDFContentBlock block in content.Tokens.OfType<PDFContentBlock>())
             {
-                ProcessPageContentBlock(block);
+                ProcessPageContentBlock(block, blocksByMcid);
             }
         }
 
@@ -152,7 +160,9 @@ namespace PDFParse
                     if (pcontent != null)
                     {
                         page.Dict["PageContent"] = pcontent;
-                        doc.ProcessPageContentBlocks(pcontent);
+                        Dictionary<long, PDFContentBlock> blocks = new Dictionary<long, PDFContentBlock>();
+                        doc.ContentBlocks[((IPDFObjRef)page).ObjRef] = blocks;
+                        doc.ProcessPageContentBlocks(pcontent, blocks);
                     }
                 }
             }
