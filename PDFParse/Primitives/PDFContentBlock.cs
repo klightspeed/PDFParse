@@ -10,6 +10,7 @@ namespace PDFParse.Primitives
     {
         public PDFContentOperator StartMarker { get; set; }
         public List<PDFContentOperator> Content { get; set; }
+        public PDFContentBlock Parent { get; set; }
 
         public override string Text { get { return String.Join("", Content.OfType<PDFContentOperator>().Select(c => c.Text).Where(t => t != null)); } }
 
