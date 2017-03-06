@@ -15,6 +15,8 @@ namespace PDFParse
         public IPDFDictionary Root { get { return Trailer.TrailerDictionary.Dict.Get<IPDFDictionary>("Root"); } }
         public IPDFDictionary Info { get { return Trailer.TrailerDictionary.Dict.Get<IPDFDictionary>("Info"); } }
         public IPDFDictionary StructTreeRoot { get { return Root.Dict.Get<IPDFDictionary>("StructTreeRoot"); } }
+        public Dictionary<long, PDFContentBlock> ContentBlocks { get; private set; }
+        public PDFContentBlock StructTree { get; private set; }
 
         public IEnumerable<IPDFDictionary> Pages { get { return GetPages(Root.Dict.Get<IPDFDictionary>("Pages")); } }
 
@@ -38,6 +40,72 @@ namespace PDFParse
             }
         }
 
+        protected PDFContentBlock ProcessTreeNode(IPDFDictionary node, PDFName type)
+        {
+            IPDFElement K = node.Dict["K"];
+            PDFContentBlock cb = new PDFContentBlock
+            {
+                Arguments = new List<IPDFToken>
+                {
+                    type,
+                    node
+                },
+                Content = new List<PDFContentOperator>()
+            };
+
+            if (K is IPDFList && ((IPDFList)K).List != null)
+            {
+                foreach (IPDFDictionary v in ((IPDFList)K).List.OfType<IPDFDictionary>())
+                {
+                    PDFName vtype;
+                    v.Dict.TryGet("S", out vtype);
+                    cb.Content.Add(ProcessTreeNode(v, vtype));
+                }
+            }
+            else if (K is IPDFDictionary && ((IPDFDictionary)K).Dict != null)
+            {
+                PDFName vtype;
+                ((IPDFDictionary)K).Dict.TryGet("S", out vtype);
+                cb.Content.Add(ProcessTreeNode((IPDFDictionary)K, vtype));
+            }
+            else if (K is PDFInteger)
+            {
+                long mcid = ((PDFInteger)K).Value;
+
+                if (ContentBlocks.ContainsKey(mcid))
+                {
+                    cb.Content.Add(ContentBlocks[mcid]);
+                }
+            }
+
+            return cb;
+        }
+
+        protected void ProcessPageContentBlock(PDFContentBlock block)
+        {
+            if (block.BlockOptions != null && block.BlockOptions.ContainsKey("MCID"))
+            {
+                PDFInteger mcid;
+                if (block.BlockOptions.TryGet<PDFInteger>("MCID", out mcid))
+                {
+                    ContentBlocks[mcid.Value] = block;
+                }
+            }
+
+            foreach (PDFContentBlock cblock in block.Content.OfType<PDFContentBlock>())
+            {
+                ProcessPageContentBlock(cblock);
+            }
+        }
+
+        protected void ProcessPageContentBlocks(PDFContent content)
+        {
+            foreach (PDFContentBlock block in content.Tokens.OfType<PDFContentBlock>())
+            {
+                ProcessPageContentBlock(block);
+            }
+        }
+
         protected static PDFDocument ParseDocument(ByteStreamReader reader)
         {
             PDFDocument doc = new PDFDocument();
@@ -50,6 +118,7 @@ namespace PDFParse
                 {
                     IPDFList clist = content as IPDFList;
                     IPDFStream cstream = content as IPDFStream;
+                    PDFContent pcontent = null;
 
                     if (clist != null && clist.List != null)
                     {
@@ -61,14 +130,22 @@ namespace PDFParse
                                 data.AddRange(elem.Stream.Data);
                             }
                         }
-                        page.Dict["PageContent"] = new PDFContent(data.ToArray(), page);
+                        pcontent = new PDFContent(data.ToArray(), page);
                     }
                     else if (cstream != null && cstream.Stream != null)
                     {
-                        page.Dict["PageContent"] = new PDFContent(cstream.Stream.Data, page);
+                        pcontent = new PDFContent(cstream.Stream.Data, page);
+                    }
+
+                    if (pcontent != null)
+                    {
+                        page.Dict["PageContent"] = pcontent;
+                        doc.ProcessPageContentBlocks(pcontent);
                     }
                 }
             }
+
+            doc.StructTree = doc.ProcessTreeNode(doc.StructTreeRoot, (PDFName)doc.StructTreeRoot.Dict["Type"]);
 
             return doc;
         }
