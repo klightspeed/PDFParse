@@ -21,19 +21,24 @@ namespace PDFParse
 
         protected IPDFToken ReadComment()
         {
-            string str = ISO88591.GetString(reader.ReadUntilAny("\r\n", true));
-
-            if (str.StartsWith("PDF-1.") && str.Length == 7 && str[6] >= '0' && str[6] <= '7')
+            // Some PDFs have an object immediately following the %%EOF without an intervening line break
+            if (reader.Find("%EOF") == 0)
             {
-                return new PDFVersion { Minor = str[6] - '0' };
-            }
-            else if (str == "%EOF")
-            {
+                reader.Read(4);
                 return new PDFToken(PDFTokenType.EOF);
             }
             else
             {
-                return new PDFComment { Value = str };
+                string str = ISO88591.GetString(reader.ReadUntilAny("\r\n", true));
+
+                if (str.StartsWith("PDF-1.") && str.Length == 7 && str[6] >= '0' && str[6] <= '7')
+                {
+                    return new PDFVersion { Minor = str[6] - '0' };
+                }
+                else
+                {
+                    return new PDFComment { Value = str };
+                }
             }
         }
 
