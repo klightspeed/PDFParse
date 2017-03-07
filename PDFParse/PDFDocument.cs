@@ -14,7 +14,7 @@ namespace PDFParse
     {
         public IPDFDictionary Root { get { return Trailer.TrailerDictionary.Dict.Get<IPDFDictionary>("Root"); } }
         public IPDFDictionary Info { get { return Trailer.TrailerDictionary.Dict.Get<IPDFDictionary>("Info"); } }
-        public IPDFDictionary StructTreeRoot { get { return Root.Dict.Get<IPDFDictionary>("StructTreeRoot"); } }
+        public IPDFDictionary StructTreeRoot { get { return Root.Dict.ContainsKey("StructTreeRoot") ? Root.Dict.Get<IPDFDictionary>("StructTreeRoot") : null; } }
         public Dictionary<PDFObjRef, Dictionary<long, PDFContentBlock>> ContentBlocks { get; private set; }
         public PDFContentBlock StructTree { get; private set; }
 
@@ -204,7 +204,11 @@ namespace PDFParse
                 }
             }
 
-            doc.StructTree = doc.ProcessTreeNode(doc.StructTreeRoot, (PDFName)doc.StructTreeRoot.Dict["Type"]);
+            IPDFDictionary stree = doc.StructTreeRoot;
+            if (stree != null)
+            {
+                doc.StructTree = doc.ProcessTreeNode(stree, (PDFName)stree.Dict["Type"]);
+            }
 
             return doc;
         }
