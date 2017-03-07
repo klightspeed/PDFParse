@@ -9,6 +9,7 @@ namespace PDFParse.Primitives
     {
         public PDFTokenType TokenType { get { return PDFTokenType.XrefEntry; } }
         public bool InUse { get; set; }
+        public int ID { get; set; }
         public int Generation { get; set; }
         public long Offset { get; set; }
 
