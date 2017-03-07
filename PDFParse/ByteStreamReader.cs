@@ -49,11 +49,11 @@ namespace PDFParse
             return FindAny(ISO88591.GetBytes(find), permiteof);
         }
 
-        public int Find(byte[] find, byte[] final, bool permiteof = false)
+        public int Find(byte[] find, byte[] final = null, bool permiteof = false)
         {
             for (int pos = Offset; pos < Data.Length - find.Length; pos++)
             {
-                if (find.Select((v, i) => Data[pos + i] == v).All(v => v) && ((find.Length + pos == Data.Length) || final.Contains(Data[pos + find.Length])))
+                if (find.Select((v, i) => Data[pos + i] == v).All(v => v) && ((find.Length + pos == Data.Length) || final == null || final.Contains(Data[pos + find.Length])))
                 {
                     if (permiteof || find.Length + pos < Data.Length)
                     {
@@ -65,9 +65,9 @@ namespace PDFParse
             throw new EndOfStreamException();
         }
 
-        public int Find(string find, string final, bool permiteof = false)
+        public int Find(string find, string final = null, bool permiteof = false)
         {
-            return Find(ISO88591.GetBytes(find), ISO88591.GetBytes(final), permiteof);
+            return Find(ISO88591.GetBytes(find), final == null ? null : ISO88591.GetBytes(final), permiteof);
         }
 
         public int Skip(byte[] skip, bool permiteof = false)
