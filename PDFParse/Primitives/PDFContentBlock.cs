@@ -18,12 +18,44 @@ namespace PDFParse.Primitives
         {
             get
             {
-                PDFContentOperator Tm = Content.FirstOrDefault(c => c.Name == "Tm");
-                if (Tm != null)
+                PointF pt = new PointF { X = float.MaxValue, Y = float.MaxValue };
+                bool haspos = false;
+
+                foreach (PDFContentOperator Tm in Content.Where(c => c.Name == "Tm" || c is PDFContentBlock))
                 {
-                    double x = ((IPDFValue<double>)Tm.Arguments[4]).Value;
-                    double y = ((IPDFValue<double>)Tm.Arguments[5]).Value;
-                    return new PointF((float)x, (float)y);
+                    double x, y;
+
+                    if (Tm is PDFContentBlock)
+                    {
+                        PointF p = ((PDFContentBlock)Tm).TextPos;
+                        x = p.X;
+                        y = p.Y;
+                    }
+                    else
+                    {
+                        x = ((IPDFValue<double>)Tm.Arguments[4]).Value;
+                        y = ((IPDFValue<double>)Tm.Arguments[5]).Value;
+                    }
+
+                    if (x != 0 && y != 0)
+                    {
+                        if (x < pt.X)
+                        {
+                            pt.X = (float)x;
+                        }
+
+                        if (y < pt.Y)
+                        {
+                            pt.Y = (float)y;
+                        }
+
+                        haspos = true;
+                    }
+                }
+
+                if (haspos)
+                {
+                    return pt;
                 }
                 else
                 {
@@ -63,21 +95,80 @@ namespace PDFParse.Primitives
         {
             get
             {
-                PDFContentOperator W = Content.FirstOrDefault(c => c.Name == "W");
-                if (W != null)
+                RectangleF cropbox = new RectangleF(float.MaxValue, float.MaxValue, -1, -1);
+                bool hascropbox = false;
+
+                foreach (PDFContentOperator W in Content.Where(c => c.Name == "W" || c.Name == "re" || c is PDFContentBlock))
                 {
-                    PDFContentOperator re = W.Arguments.OfType<PDFContentOperator>().FirstOrDefault(c => c.Name == "re");
-                    if (re != null)
+                    PDFContentOperator re = W;
+                    double x, y, w, h;
+
+                    if (W.Name == "W")
                     {
-                        double x = ((IPDFValue<double>)re.Arguments[0]).Value;
-                        double y = ((IPDFValue<double>)re.Arguments[1]).Value;
-                        double w = ((IPDFValue<double>)re.Arguments[2]).Value;
-                        double h = ((IPDFValue<double>)re.Arguments[3]).Value;
-                        return new RectangleF((float)x, (float)y, (float)w, (float)h);
+                        re = W.Arguments.OfType<PDFContentOperator>().FirstOrDefault(c => c.Name == "re");
+                    }
+
+                    if (W is PDFContentBlock)
+                    {
+                        PDFContentBlock blk = (PDFContentBlock)W;
+                        RectangleF r = blk.CropBox;
+                        x = r.X;
+                        y = r.Y;
+                        w = r.Width;
+                        h = r.Height;
+                    }
+                    else
+                    {
+                        x = ((IPDFValue<double>)re.Arguments[0]).Value;
+                        y = ((IPDFValue<double>)re.Arguments[1]).Value;
+                        w = ((IPDFValue<double>)re.Arguments[2]).Value;
+                        h = ((IPDFValue<double>)re.Arguments[3]).Value;
+                    }
+
+                    if (w != 0 && h != 0)
+                    {
+                        if (x < cropbox.X)
+                        {
+                            if (cropbox.Width > 0)
+                            {
+                                cropbox.Width += cropbox.X - (float)x;
+                            }
+
+                            cropbox.X = (float)x;
+                        }
+
+                        if (y < cropbox.Y)
+                        {
+                            if (cropbox.Height > 0)
+                            {
+                                cropbox.Height += cropbox.X - (float)x;
+                            }
+
+                            cropbox.Y = (float)y;
+                        }
+
+                        if (x + w > cropbox.X + cropbox.Width)
+                        {
+                            cropbox.Width = (float)((x - cropbox.X) + w);
+                        }
+
+                        if (y + h > cropbox.Y + cropbox.Height)
+                        {
+                            cropbox.Height = (float)((y - cropbox.Y) + h);
+                        }
+
+                        hascropbox = true;
                     }
                 }
 
-                return RectangleF.Empty;
+                if (hascropbox)
+                {
+                    return cropbox;
+                }
+                else
+                {
+                    return RectangleF.Empty;
+                }
             }
         }
 
