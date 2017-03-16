@@ -167,6 +167,61 @@ namespace PDFParse.Primitives
                     }
                 }
 
+                if (!hascropbox)
+                {
+                    foreach (PDFContentOperator Tm in Content.Where(c => c.Name == "Tm" || c.Name == "Td"))
+                    {
+                        double x = 0;
+                        double y = 0;
+
+                        if (Tm.Name == "Tm")
+                        {
+                            x = ((IPDFValue<double>)Tm.Arguments[4]).Value;
+                            y = ((IPDFValue<double>)Tm.Arguments[5]).Value;
+                        }
+                        else if (Tm.Name == "Td")
+                        {
+                            x = ((IPDFValue<double>)Tm.Arguments[0]).Value;
+                            y = ((IPDFValue<double>)Tm.Arguments[1]).Value;
+                        }
+
+                        if (x != 0 && y != 0)
+                        {
+                            if (x < cropbox.X)
+                            {
+                                if (cropbox.Width > 0)
+                                {
+                                    cropbox.Width += cropbox.X - (float)x;
+                                }
+
+                                cropbox.X = (float)x;
+                            }
+
+                            if (y < cropbox.Y)
+                            {
+                                if (cropbox.Height > 0)
+                                {
+                                    cropbox.Height += cropbox.X - (float)x;
+                                }
+
+                                cropbox.Y = (float)y;
+                            }
+
+                            if (x > cropbox.X + cropbox.Width)
+                            {
+                                cropbox.Width = (float)(x - cropbox.X);
+                            }
+
+                            if (y > cropbox.Y + cropbox.Height)
+                            {
+                                cropbox.Height = (float)(y - cropbox.Y);
+                            }
+
+                            hascropbox = true;
+                        }
+                    }
+                }
+
                 if (hascropbox)
                 {
                     return cropbox;
