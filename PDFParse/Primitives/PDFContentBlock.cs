@@ -21,9 +21,10 @@ namespace PDFParse.Primitives
                 PointF pt = new PointF { X = float.MaxValue, Y = float.MaxValue };
                 bool haspos = false;
 
-                foreach (PDFContentOperator Tm in Content.Where(c => c.Name == "Tm" || c is PDFContentBlock))
+                foreach (PDFContentOperator Tm in Content.Where(c => c.Name == "Tm" || c.Name == "Td" || c is PDFContentBlock))
                 {
-                    double x, y;
+                    double x = 0;
+                    double y = 0;
 
                     if (Tm is PDFContentBlock)
                     {
@@ -31,10 +32,15 @@ namespace PDFParse.Primitives
                         x = p.X;
                         y = p.Y;
                     }
-                    else
+                    else if (Tm.Name == "Tm")
                     {
                         x = ((IPDFValue<double>)Tm.Arguments[4]).Value;
                         y = ((IPDFValue<double>)Tm.Arguments[5]).Value;
+                    }
+                    else if (Tm.Name == "Td")
+                    {
+                        x = ((IPDFValue<double>)Tm.Arguments[0]).Value;
+                        y = ((IPDFValue<double>)Tm.Arguments[1]).Value;
                     }
 
                     if (x != 0 && y != 0)
